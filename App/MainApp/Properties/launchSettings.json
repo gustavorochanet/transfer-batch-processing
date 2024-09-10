@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MainApp": {
+      "commandName": "Project",
+      "commandLineArgs": "SampleFiles/sample.csv"
+    }
+  }
+}

@@ -40,9 +40,9 @@ public class TransactionProcessorTests
         // Arrange
         var transactions = new List<Transaction>
             {
-                new() { AccountId = "1", TransactionId = "TX1", TransactionAmount = 100.0 },
-                new() { AccountId = "1", TransactionId = "TX2", TransactionAmount = 200.0 },
-                new() { AccountId = "2", TransactionId = "TX3", TransactionAmount = 300.0 }
+                new("1", "TX1", 100.0), // Use positional parameters to initialize the record
+                new("1", "TX2", 200.0),
+                new("2", "TX3", 300.0)
             };
 
         // Act
@@ -73,9 +73,9 @@ public class TransactionProcessorTests
         // Arrange
         var transactions = new List<Transaction>
             {
-                new() { AccountId = "1", TransactionId = "TX1", TransactionAmount = 100.0 },
-                new() { AccountId = "1", TransactionId = "TX2", TransactionAmount = 150.0 },
-                new() { AccountId = "2", TransactionId = "TX3", TransactionAmount = 300.0 }
+                new("1", "TX1", 100.0), // Use positional parameters to initialize the record
+                new("1", "TX2", 150.0),
+                new("2", "TX3", 300.0)
             };
 
         // Act
