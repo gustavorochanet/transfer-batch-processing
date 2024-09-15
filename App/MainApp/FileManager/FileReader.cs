@@ -79,7 +79,7 @@ public class FileReader : IFileReader
     /// Each line of the file is expected to contain a transaction in the format: accountId, transactionId, transactionAmount.
     /// Invalid or malformed lines are skipped.
     /// </remarks>
-    public void ReadIntoCallback(Action<(string accountId, string transactionId, double transactionAmount)> callbackFunction)
+    public void ReadIntoCallback(Action<Transaction> callbackFunction)
     {
         using var fileStream = File.OpenRead(_filePath);
         using var streamReader = new StreamReader(fileStream);
@@ -94,13 +94,12 @@ public class FileReader : IFileReader
 
             var span = line.AsSpan(); // Avoid creating string arrays with Split
             var index1 = span.IndexOf(',');
+            if (index1 == -1) continue; // Invalid format, skip line
+
             var index2 = span[(index1 + 1)..].IndexOf(',') + index1 + 1;
+            if (index2 == -1) continue; // Invalid format, skip line
 
-            if (index1 == -1 || index2 == -1)
-            {
-                continue; // Invalid format, skip line
-            }
-
+   
             var accountId = span[..index1].ToString();
             var transactionId = span.Slice(index1 + 1, index2 - index1 - 1).ToString();
 
@@ -109,7 +108,7 @@ public class FileReader : IFileReader
                 continue; // Skip line if parsing fails
             }
 
-            callbackFunction((accountId, transactionId, transactionAmount));
+            callbackFunction(new Transaction(accountId, transactionId, transactionAmount));
         }
     }
 }

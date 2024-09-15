@@ -7,21 +7,27 @@ namespace MainApp.Storage;
 /// An implementation of <see cref="ITransactionStorage"/> that stores transactions read from a file.
 /// </summary>
 /// <remarks>
-/// This class uses an instance of <see cref="IFileReader"/> to read transactions from a file
-/// and store them internally in a list. The stored transactions can then be retrieved by
-/// other components, such as a transaction processor.
+/// This class reads transactions using an instance of <see cref="IFileReader"/> and stores them internally.
+/// It provides methods to retrieve the total number of transactions, transactions grouped by account,
+/// and the transaction with the highest amount.
 /// </remarks>
 public class TransactionStorage : ITransactionStorage
 {
-    private readonly List<Transaction> _transactions = [];
+    private readonly Dictionary<string, double> _transactions = []; // Stores the total transaction amount per account
+    private Transaction _higherTransaction = new(string.Empty, string.Empty, 0); // Stores the highest transaction
+    private int transactionCount = 0; // Tracks the total number of transactions
+
+    /// <summary>
+    /// Gets the total number of transactions processed so far.
+    /// </summary>
+    public int TransactionCount => transactionCount;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionStorage"/> class and reads transactions from the file reader.
     /// </summary>
-    /// <param name="fileReader">The <see cref="IFileReader"/> responsible for reading the transactions.</param>
+    /// <param name="fileReader">The <see cref="IFileReader"/> responsible for reading the transactions from the file.</param>
     /// <remarks>
-    /// This constructor immediately reads transactions using the provided <see cref="IFileReader"/>
-    /// and stores them internally.
+    /// The constructor reads the transactions using the provided file reader and immediately stores them in memory.
     /// </remarks>
     public TransactionStorage(IFileReader fileReader)
     {
@@ -29,25 +35,64 @@ public class TransactionStorage : ITransactionStorage
     }
 
     /// <summary>
-    /// Reads transactions from the file reader and stores them in the internal list.
+    /// Reads transactions from the file reader and updates the internal transaction storage.
     /// </summary>
     /// <param name="fileReader">The <see cref="IFileReader"/> that reads the transaction data.</param>
     private void ReadTransactionsFromReader(IFileReader fileReader)
     {
         fileReader.ReadIntoCallback( (t) => 
         {
-            _transactions.Add(
-                new Transaction(t.accountId, t.transactionId, t.transactionAmount)
-            );
+            transactionCount++;
+            UpdateTransactions(t);
+            UpdateHigherTransaction(t);
         });
     }
 
     /// <summary>
-    /// Retrieves all stored transactions.
+    /// Updates the highest transaction with the new transaction if it has a higher amount.
     /// </summary>
-    /// <returns>An array of <see cref="Transaction"/> objects.</returns>
-    public Transaction[] GetTransactions()
+    /// <param name="transaction">The new transaction to be checked against the current highest transaction.</param>
+
+    private void UpdateHigherTransaction(Transaction transaction)
     {
-        return [.. _transactions];
+        if (transaction.TransactionAmount > _higherTransaction.TransactionAmount)
+        {
+            _higherTransaction = transaction;
+        }
+    }
+
+    /// <summary>
+    /// Updates the internal transaction storage by adding the new transaction's amount to the appropriate account.
+    /// </summary>
+    /// <param name="transaction">The new transaction to be added to the storage.</param>
+
+    private void UpdateTransactions(Transaction transaction)
+    {
+        if (!_transactions.ContainsKey(transaction.AccountId))
+        {
+            _transactions[transaction.AccountId] = transaction.TransactionAmount;
+        }
+        else
+        {
+            _transactions[transaction.AccountId] += transaction.TransactionAmount;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all stored transactions grouped by account.
+    /// </summary>
+    /// <returns>An array of <see cref="GroupedTransaction"/> objects where each represents the total transaction amount per account.</returns>
+    public GroupedTransaction[] GetTransactions()
+    {
+        return _transactions.Select(t => new GroupedTransaction(t.Key, t.Value)).ToArray();
+    }
+
+    /// <summary>
+    /// Retrieves the transaction with the highest amount.
+    /// </summary>
+    /// <returns>The <see cref="Transaction"/> object with the highest transaction amount.</returns>
+    public Transaction GetHigherTransaction()
+    {
+        return _higherTransaction;
     }
 }

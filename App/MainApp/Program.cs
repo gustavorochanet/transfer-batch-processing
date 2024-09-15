@@ -2,149 +2,120 @@
 using MainApp.Storage;
 using MainApp.TransactionManager;
 using Spectre.Console;
-using System.CommandLine;
+using Spectre.Console.Cli;
+using System.ComponentModel;
 
-/// <summary>
-/// Entry point for the Transaction Processing Console App.
-/// The application accepts a file path as a command-line argument, processes the file,
-/// and outputs transaction-related commissions.
-/// </summary>
-/// <remarks>
-/// This example demonstrates the use of both the <see cref="FileInfo"/> parameter in the command line
-/// handler and the usage of the <see cref="IFileReader"/> within the <see cref="TransactionProcessor"/>.
-/// Even though we pass a <see cref="FileInfo"/> to the handler, the actual file reading is performed 
-/// inside the <see cref="TransactionProcessor"/> to showcase both techniques.
-/// </remarks>
-var fileArgument = new Argument<FileInfo?>(
-    name: "file",  // This is just the name in code, it won't be required in the command line
-    description: "The path to the CSV file containing transaction data"
-)
+var app = new CommandApp<ProcessFileCommand>();
+return app.Run(args);
+
+internal class ProcessFileCommand : AsyncCommand<ProcessFileCommand.Settings>
 {
-    Arity = ArgumentArity.ExactlyOne  // Expect exactly one argument
-};
-
-var rootCommand = new RootCommand("Transaction Processing Console App"){
-    fileArgument
-};
-
-/// <summary>
-/// Command handler that processes the file passed as an argument and triggers the transaction processing.
-/// </summary>
-/// <param name="file">The CSV file to be processed, provided as a <see cref="FileInfo"/>.</param>
-/// <remarks>
-/// The <see cref="FileInfo"/> parameter is used to exemplify the usage of file-based input in command-line
-/// applications. Even though the file object is passed here, the actual content reading occurs inside 
-/// the <see cref="TransactionProcessor"/> class.
-/// </remarks>
-rootCommand.SetHandler(async (file) =>
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        await ProcessFile(file!);
-    }, fileArgument);
+        var filePath = settings.FilePath;
 
-return await rootCommand.InvokeAsync(args);
+        // Ensure the file exists before processing
+        if (!File.Exists(filePath))
+        {
+            AnsiConsole.Markup("[red]Error: The file does not exist.[/]");
+            return -1;
+        }
 
-
-
-/// <summary>
-/// Asynchronously processes the file by loading transactions, removing the highest transaction, 
-/// calculating commissions, and printing the results.
-/// </summary>
-/// <param name="fileInfo">The <see cref="FileInfo"/> object representing the CSV file.</param>
-/// <remarks>
-/// Although the file is passed as a <see cref="FileInfo"/>, this method delegates the actual reading 
-/// of file contents to the <see cref="TransactionProcessor"/> to highlight the usage of both cases.
-/// </remarks>
-static async Task ProcessFile(FileInfo fileInfo)
-{
-
-    try
-    {
-        // Create a progress bar to show progress across different stages
-        await AnsiConsole.Status()
-            .StartAsync("Processing transactions...", async ctx =>
-            {
-                // Step 1: Reading the file
-                ctx.Status("[green]Reading file and loading transactions[/]");
-                ctx.Spinner(Spinner.Known.Star);
-                ctx.SpinnerStyle(Style.Parse("green"));
-
-                var fileReader = new FileReader(fileInfo.FullName);
-                var transactionStorage = new TransactionStorage(fileReader);
-
-                await Task.Delay(500); // Simulate delay for file reading (if required)
-
-                // Step 2: Storing transactions
-                ctx.Status("[yellow]Storing transactions...[/]");
-                ctx.Spinner(Spinner.Known.Clock);
-                ctx.SpinnerStyle(Style.Parse("yellow"));
-
-                await Task.Delay(500); // Simulate delay for storing transactions (if required)
-
-                // Step 3: Removing the highest transaction
-                ctx.Status("[blue]Removing highest transaction...[/]");
-                ctx.Spinner(Spinner.Known.Circle);
-                ctx.SpinnerStyle(Style.Parse("blue"));
-
-                var processor = new TransactionProcessor(transactionStorage);
-                processor.RemoveHighestTransaction();
-
-                await Task.Delay(500); // Simulate delay for removing transaction ( this one is likely to be needed)
-
-                // Step 4: Calculating commissions
-                ctx.Status("[magenta]Calculating commissions...[/]");
-                ctx.Spinner(Spinner.Known.Dots);
-                ctx.SpinnerStyle(Style.Parse("magenta"));
-
-                var commissions = processor.CalculateCommissions();
-
-                await Task.Delay(500); // Simulate delay for calculating commissions (this one is likely to be needed)
-
-                // Step 5: Print the results after all stages are done
-                ctx.Status("[green]Processing complete![/]");
-                PrintCommissions(commissions);
-            });
-    }
-    catch (Exception ex)
-    {
-        AnsiConsole.WriteException(ex);
+        // Process the file
+        await ProcessFile(new FileInfo(filePath));
+        return 0;
     }
 
+    internal class Settings : CommandSettings
+    {
+        [CommandArgument(0, "<file>")]
+        [Description("The path to the CSV file containing transaction data.")]
+        public required string FilePath { get; set; }
+    }
 
-    //try
-    //{
-    //    var fileReader = new FileReader(fileInfo.FullName);
-    //    var transactionStorage = new TransactionStorage(fileReader);
+    /// <summary>
+    /// Asynchronously processes the file by loading transactions, removing the highest transaction, 
+    /// calculating commissions, and printing the results.
+    /// </summary>
+    /// <param name="fileInfo">The <see cref="FileInfo"/> object representing the CSV file.</param>
+    /// <remarks>
+    /// Although the file is passed as a <see cref="FileInfo"/>, this method delegates the actual reading 
+    /// of file contents to the <see cref="TransactionProcessor"/> to highlight the usage of both cases.
+    /// </remarks>
+    static async Task ProcessFile(FileInfo fileInfo)
+    {
+        try
+        {
+            // Create a progress bar to show progress across different stages
+            await AnsiConsole.Status()
+                .StartAsync("Processing transactions...", async ctx =>
+                {
+                    // Step 1: Reading the file
+                    ctx.Status("[green]Reading file and loading transactions[/]");
+                    ctx.Spinner(Spinner.Known.Star);
+                    ctx.SpinnerStyle(Style.Parse("green"));
 
-    //    var processor = new TransactionProcessor(transactionStorage);
+                    var fileReader = new FileReader(fileInfo.FullName);
+                    var transactionStorage = new TransactionStorage(fileReader);
 
-    //    // Removing the highest transaction and calculating commissions
-    //    processor.RemoveHighestTransaction();
-    //    var commissions = processor.CalculateCommissions();
+                    await Task.Delay(500); // Simulate delay for file reading (if required)
 
-    //    // Printing the final calculated commissions
-    //    PrintCommissions(commissions);
-    //}
-    //catch (Exception ex)
-    //{
-    //    Console.WriteLine($"An error occurred: {ex.Message}");
-    //}
+                    // Step 2: Storing transactions
+                    ctx.Status("[yellow]Storing transactions...[/]");
+                    ctx.Spinner(Spinner.Known.Clock);
+                    ctx.SpinnerStyle(Style.Parse("yellow"));
+
+                    await Task.Delay(500); // Simulate delay for storing transactions (if required)
+
+                    // Step 3: Removing the highest transaction
+                    ctx.Status("[blue]Removing highest transaction...[/]");
+                    ctx.Spinner(Spinner.Known.Circle);
+                    ctx.SpinnerStyle(Style.Parse("blue"));
+
+                    var processor = new TransactionProcessor(transactionStorage);
+                    processor.RemoveHighestTransaction();
+
+                    await Task.Delay(500); // Simulate delay for removing transaction ( this one is likely to be needed)
+
+                    // Step 4: Calculating commissions
+                    ctx.Status("[magenta]Calculating commissions...[/]");
+                    ctx.Spinner(Spinner.Known.Dots);
+                    ctx.SpinnerStyle(Style.Parse("magenta"));
+
+                    var commissions = processor.CalculateCommissions();
+
+                    await Task.Delay(500); // Simulate delay for calculating commissions (this one is likely to be needed)
+
+                    // Step 5: Print the results after all stages are done
+                    ctx.Status("[green]Processing complete![/]");
+                    PrintCommissions(commissions);
+
+                    AnsiConsole.WriteLine($"{commissions.Count} commissions calculated. - {transactionStorage.TransactionCount} transactions read from file");
+                });
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.WriteException(ex);
+        }
+    }
+
+    /// <summary>
+    /// Outputs the calculated commissions to the console.
+    /// </summary>
+    /// <param name="commissions">A dictionary containing the AccountId as the key and the calculated commission as the value.</param>
+    /// <remarks>
+    /// Commissions are printed with two decimal places, sorted by account ID for clarity.
+    /// </remarks>
+    static void PrintCommissions(Dictionary<string, double> commissions)
+    {
+        AnsiConsole.MarkupLine("[underline yellow]Commissions:[/]");
+
+        foreach (var commission in commissions.OrderBy(x => x.Key))
+        {
+            // Print each account's commission formatted to 2 decimal places
+            AnsiConsole.MarkupLine($"[green]{commission.Key}[/], [blue]{commission.Value:F2}[/]");
+        }
+    }
 }
 
-/// <summary>
-/// Outputs the calculated commissions to the console.
-/// </summary>
-/// <param name="commissions">A dictionary containing the AccountId as the key and the calculated commission as the value.</param>
-/// <remarks>
-/// Commissions are printed with two decimal places, sorted by account ID for clarity.
-/// </remarks>
-static void PrintCommissions(Dictionary<string, double> commissions)
-{
-    AnsiConsole.MarkupLine("[underline yellow]Commissions:[/]");
 
-    foreach (var commission in commissions.OrderBy(x => x.Key))
-    {
-        // Print each account's commission formatted to 2 decimal places
-        AnsiConsole.MarkupLine($"[green]{commission.Key}[/], [blue]{commission.Value:F2}[/]");
-    }
-
-}

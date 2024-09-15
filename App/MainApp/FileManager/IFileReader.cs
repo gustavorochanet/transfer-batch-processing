@@ -20,5 +20,5 @@ public interface IFileReader
     /// The implementation of this method is responsible for reading from a specific source (e.g., a file)
     /// and parsing each line into a valid transaction format before invoking the callback.
     /// </remarks>
-    public void ReadIntoCallback(Action<(string accountId, string transactionId, double transactionAmount)> callbackFunction);
+    public void ReadIntoCallback(Action<Transaction> callbackFunction);
 }

@@ -7,7 +7,7 @@ You can find a solution file (`.sln`) in the root of the project that can be ope
 ## Features
 
 - **Load transactions from a CSV file**: Transaction data is streamed in and processed for better performance, especially for large files.
-- **Store transactions in memory**: Transactions are stored using a `TransactionStorage` class that decouples file reading from processing.
+- **Store transactions in memory**: The `TransactionStorage` class stores transactions in memory, but the storage abstraction via the `ITransactionStorage` interface supports alternative storage backends (e.g., NoSQL databases).
 - **Remove the highest transaction**: The application identifies and removes the transaction with the highest amount.
 - **Calculate commissions for each account**: Commissions are calculated at a rate of 10% of the total transaction amount per account.
 - **Output results with 2 decimal precision**: Results are displayed with proper formatting for precision.
@@ -44,7 +44,7 @@ Before building the application, restore the project dependencies by running the
 dotnet restore
 ```
 
-This will download and install any necessary packages, including `System.CommandLine`, which is used to handle command-line arguments.
+This will download and install any necessary packages, including `Spectre.Console` and `Spectre.Console.CLI`, used to handle command-line arguments and UI update.
 
 ### 2. Build the Application
 To build the application, run the following command:
@@ -108,8 +108,43 @@ Each row represents a transaction, and the file should not contain any header.
 - `TransactionAmount`: The amount for the transaction.
 
 
+## Storage Mechanism Abstraction
+
+The application abstracts transaction storage using the `ITransactionStorage` interface. Currently, an in-memory storage class (`TransactionStorage`) is implemented, which stores transactions in memory. However, this abstraction allows for the addition of other storage backends, such as NoSQL databases (e.g., MongoDB or CosmosDB), which would be more suitable for large-scale and distributed systems.
+
+The interface defines the following methods:
+
+- **GetTransactions**: Retrieves grouped transactions by account.
+- **GetHigherTransaction**: Retrieves the transaction with the highest amount.
+- **TransactionCount**: Tracks the number of transactions processed.
+
 
 ## Additional Tools
 
 **Large CSV File Generator**: A separate console app has been added to the solution to generate large transaction files for performance testing purposes. This tool allows you to generate CSV files of any size, providing a useful way to stress-test the main application with large datasets.
+
+
+
+## Performance Improvements and Method Comparisons
+
+In the `FileReader` class, two methods exist for reading CSV files: `ReadIntoCallbackOld` and `ReadIntoCallback`.
+
+### Why Are There Two Methods?
+
+1. **ReadIntoCallbackOld**:
+   - This method uses traditional string splitting (`Split`) and string processing techniques to parse each line of the file. While functional, it may not be as efficient, especially for very large files.
+   
+2. **ReadIntoCallback**:
+   - This newer method is optimized for performance by avoiding unnecessary string allocations. It leverages `Span<T>` to operate directly on the memory where the strings are stored, which can reduce memory usage and improve overall processing speed for large datasets.
+
+### Why Is One Version Faster?
+
+- **Memory Optimization**: The newer version, `ReadIntoCallback`, reduces the overhead of creating new string arrays by operating on the raw string memory. This means fewer objects are allocated on the heap, leading to better memory management.
+- **Span<T> Usage**: Using `Span<T>` allows for more efficient memory slicing without the need to split the string into arrays, which boosts performance, particularly when dealing with millions of lines.
+
+### Benchmarking the Methods
+
+To validate the performance improvement between these two methods, **BenchmarkDotNet** was integrated into the solution. This allows a detailed comparison of the execution times and memory usage of both methods.
+
+The benchmark can be run to measure the performance of `ReadIntoCallbackOld` and `ReadIntoCallback` using a sample file. The results demonstrate which method is faster and more memory-efficient.
 
