@@ -15,17 +15,27 @@ namespace TBP.Tests
             var fileReader = new FileReader(tempFilePath);
             var callbackInvokedCount = 0;
 
-            // Act
-            fileReader.ReadIntoCallback(t =>
+            try
             {
-                callbackInvokedCount++;
-                Assert.IsNotNull(t.accountId); // Basic validation to ensure callback received correct data
-                Assert.IsNotNull(t.transactionId);
-                Assert.IsTrue(t.transactionAmount > 0);
-            });
+                fileReader.ReadIntoCallback(t =>
+                {
+                    callbackInvokedCount++;
 
-            // Cleanup
-            File.Delete(tempFilePath); // Delete the temporary file
+                    // Validate that the callback was invoked with correct transaction details
+                    Assert.IsFalse(string.IsNullOrEmpty(t.AccountId), "Account ID should not be null or empty.");
+                    Assert.IsFalse(string.IsNullOrEmpty(t.TransactionId), "Transaction ID should not be null or empty.");
+                    Assert.IsTrue(t.TransactionAmount > 0, "Transaction amount should be greater than 0.");
+                });
+            }
+            finally
+            {
+                // Cleanup: Ensure the temporary file is deleted after the test
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+
 
             // Assert
             Assert.AreEqual(3, callbackInvokedCount); // Ensure callback is invoked exactly 3 times            

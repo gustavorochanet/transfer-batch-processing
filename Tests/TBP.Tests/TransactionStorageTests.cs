@@ -1,11 +1,7 @@
-﻿using MainApp.FileManager;
+﻿using MainApp.Entities;
+using MainApp.FileManager;
 using MainApp.Storage;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TBP.Tests
 {
@@ -17,16 +13,16 @@ namespace TBP.Tests
         {
             // Arrange
             var mockFileReader = new Mock<IFileReader>();
-            var transactions = new List<(string accountId, string transactionId, double transactionAmount)>
+            var transactions = new List<Transaction>
             {
-                ("1", "TX1", 100.0),
-                ("1", "TX2", 200.0),
-                ("2", "TX3", 300.0)
+                new("1", "TX1", 100.0),
+                new("1", "TX2", 200.0),
+                new("2", "TX3", 300.0)
             };
 
 
-            mockFileReader.Setup(fr => fr.ReadIntoCallback(It.IsAny<Action<(string, string, double)>>()))
-                .Callback<Action<(string accountId, string transactionId, double transactionAmount)>>(
+            mockFileReader.Setup(fr => fr.ReadIntoCallback(It.IsAny<Action<Transaction>>()))
+                .Callback<Action<Transaction>>(
                     callback =>
                     {
                         foreach (var t in transactions)
@@ -40,9 +36,10 @@ namespace TBP.Tests
             var storedTransactions = storage.GetTransactions();
 
             // Assert
-            Assert.AreEqual(transactions.Count, storedTransactions.Length);
-            Assert.AreEqual("TX1", storedTransactions[0].TransactionId);
-            Assert.AreEqual(300.0, storedTransactions[2].TransactionAmount);
+            Assert.AreEqual(2, storedTransactions.Length); // Two accounts are stored (grouped by account ID)
+            Assert.AreEqual(300.0, storedTransactions[1].TransactionSum); // Total for second account
+            Assert.AreEqual("1", storedTransactions[0].AccountId);
+            Assert.AreEqual(300.0, storedTransactions[0].TransactionSum); // Total sum for account 1 (100 + 200)
         }
 
         [TestMethod]
@@ -50,7 +47,7 @@ namespace TBP.Tests
         {
             // Arrange
             var mockFileReader = new Mock<IFileReader>();
-            mockFileReader.Setup(fr => fr.ReadIntoCallback(It.IsAny<Action<(string, string, double)>>()));
+            mockFileReader.Setup(fr => fr.ReadIntoCallback(It.IsAny<Action<Transaction>>()));
 
             var storage = new TransactionStorage(mockFileReader.Object);
 
