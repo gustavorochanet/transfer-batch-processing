@@ -1,6 +1,7 @@
 ﻿using MainApp.FileManager;
 using MainApp.Storage;
 using MainApp.TransactionManager;
+using Spectre.Console;
 using System.CommandLine;
 
 /// <summary>
@@ -55,24 +56,78 @@ return await rootCommand.InvokeAsync(args);
 /// </remarks>
 static async Task ProcessFile(FileInfo fileInfo)
 {
+
     try
     {
-        var fileReader = new FileReader(fileInfo.FullName);
-        var transactionStorage = new TransactionStorage(fileReader);
+        // Create a progress bar to show progress across different stages
+        await AnsiConsole.Status()
+            .StartAsync("Processing transactions...", async ctx =>
+            {
+                // Step 1: Reading the file
+                ctx.Status("[green]Reading file and loading transactions[/]");
+                ctx.Spinner(Spinner.Known.Star);
+                ctx.SpinnerStyle(Style.Parse("green"));
 
-        var processor = new TransactionProcessor(transactionStorage);
+                var fileReader = new FileReader(fileInfo.FullName);
+                var transactionStorage = new TransactionStorage(fileReader);
 
-        // Removing the highest transaction and calculating commissions
-        processor.RemoveHighestTransaction();
-        var commissions = processor.CalculateCommissions();
+                await Task.Delay(500); // Simulate delay for file reading (if required)
 
-        // Printing the final calculated commissions
-        PrintCommissions(commissions);
+                // Step 2: Storing transactions
+                ctx.Status("[yellow]Storing transactions...[/]");
+                ctx.Spinner(Spinner.Known.Clock);
+                ctx.SpinnerStyle(Style.Parse("yellow"));
+
+                await Task.Delay(500); // Simulate delay for storing transactions (if required)
+
+                // Step 3: Removing the highest transaction
+                ctx.Status("[blue]Removing highest transaction...[/]");
+                ctx.Spinner(Spinner.Known.Circle);
+                ctx.SpinnerStyle(Style.Parse("blue"));
+
+                var processor = new TransactionProcessor(transactionStorage);
+                processor.RemoveHighestTransaction();
+
+                await Task.Delay(500); // Simulate delay for removing transaction ( this one is likely to be needed)
+
+                // Step 4: Calculating commissions
+                ctx.Status("[magenta]Calculating commissions...[/]");
+                ctx.Spinner(Spinner.Known.Dots);
+                ctx.SpinnerStyle(Style.Parse("magenta"));
+
+                var commissions = processor.CalculateCommissions();
+
+                await Task.Delay(500); // Simulate delay for calculating commissions (this one is likely to be needed)
+
+                // Step 5: Print the results after all stages are done
+                ctx.Status("[green]Processing complete![/]");
+                PrintCommissions(commissions);
+            });
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"An error occurred: {ex.Message}");
+        AnsiConsole.WriteException(ex);
     }
+
+
+    //try
+    //{
+    //    var fileReader = new FileReader(fileInfo.FullName);
+    //    var transactionStorage = new TransactionStorage(fileReader);
+
+    //    var processor = new TransactionProcessor(transactionStorage);
+
+    //    // Removing the highest transaction and calculating commissions
+    //    processor.RemoveHighestTransaction();
+    //    var commissions = processor.CalculateCommissions();
+
+    //    // Printing the final calculated commissions
+    //    PrintCommissions(commissions);
+    //}
+    //catch (Exception ex)
+    //{
+    //    Console.WriteLine($"An error occurred: {ex.Message}");
+    //}
 }
 
 /// <summary>
@@ -84,9 +139,12 @@ static async Task ProcessFile(FileInfo fileInfo)
 /// </remarks>
 static void PrintCommissions(Dictionary<string, double> commissions)
 {
+    AnsiConsole.MarkupLine("[underline yellow]Commissions:[/]");
+
     foreach (var commission in commissions.OrderBy(x => x.Key))
     {
         // Print each account's commission formatted to 2 decimal places
-        Console.WriteLine($"{commission.Key},{commission.Value:F2}");
+        AnsiConsole.MarkupLine($"[green]{commission.Key}[/], [blue]{commission.Value:F2}[/]");
     }
+
 }

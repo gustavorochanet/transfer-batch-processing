@@ -107,3 +107,9 @@ Each row represents a transaction, and the file should not contain any header.
 - `TransactionID`: The ID of the transaction.
 - `TransactionAmount`: The amount for the transaction.
 
+
+
+## Additional Tools
+
+**Large CSV File Generator**: A separate console app has been added to the solution to generate large transaction files for performance testing purposes. This tool allows you to generate CSV files of any size, providing a useful way to stress-test the main application with large datasets.
+
