@@ -1,4 +1,5 @@
 ﻿using MainApp.FileManager;
+using MainApp.Storage;
 using MainApp.TransactionManager;
 using System.CommandLine;
 
@@ -55,17 +56,15 @@ return await rootCommand.InvokeAsync(args);
 static async Task ProcessFile(FileInfo fileInfo)
 {
     try
-    {     
-        // Creating the file reader and processor to handle transactions
-        var fileReader = new FileReader();
-        var processor = new TransactionProcessor(fileReader);
+    {
+        var fileReader = new FileReader(fileInfo.FullName);
+        var transactionStorage = new TransactionStorage(fileReader);
 
-        // Loading transactions from the file using the processor
-        var transactions = await processor.LoadTransactionsAsync(fileInfo.FullName);
+        var processor = new TransactionProcessor(transactionStorage);
 
         // Removing the highest transaction and calculating commissions
-        var filteredTransactions = processor.RemoveHighestTransaction(transactions);
-        var commissions = processor.CalculateCommissions(filteredTransactions);
+        processor.RemoveHighestTransaction();
+        var commissions = processor.CalculateCommissions();
 
         // Printing the final calculated commissions
         PrintCommissions(commissions);

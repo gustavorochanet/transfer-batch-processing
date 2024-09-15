@@ -4,6 +4,9 @@ namespace MainApp.Entities;
 /// Represents a financial transaction that includes an account identifier, 
 /// a transaction identifier, and the amount involved in the transaction.
 /// </summary>
+/// <param name="AccountId">The ID of the account associated with the transaction.</param>
+/// <param name="TransactionId">The unique identifier for the transaction.</param>
+/// <param name="TransactionAmount">The amount of the transaction.</param>
 /// <remarks>
 /// This data type is defined as a record because:
 /// 1. **Immutability**: Transactions are inherently immutable. Once a transaction is created, 

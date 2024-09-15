@@ -6,10 +6,11 @@ You can find a solution file (`.sln`) in the root of the project that can be ope
 
 ## Features
 
-- Load transactions from a CSV file.
-- Remove the highest transaction amount.
-- Calculate commissions for each account.
-- **Output results with 2 decimal precision.**
+- **Load transactions from a CSV file**: Transaction data is streamed in and processed for better performance, especially for large files.
+- **Store transactions in memory**: Transactions are stored using a `TransactionStorage` class that decouples file reading from processing.
+- **Remove the highest transaction**: The application identifies and removes the transaction with the highest amount.
+- **Calculate commissions for each account**: Commissions are calculated at a rate of 10% of the total transaction amount per account.
+- **Output results with 2 decimal precision**: Results are displayed with proper formatting for precision.
 
 ## Requirements
 
